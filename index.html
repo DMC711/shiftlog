@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>ShiftLog - Work Time Tracker</title>
+  
+  <!-- iOS Web App Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ShiftLog">
+  <meta name="theme-color" content="#1F4E79">
+  <meta name="application-name" content="ShiftLog">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <!-- Embedded Web App Manifest -->
+  <link rel="manifest" id="manifest-placeholder">
+
+  <!-- SVG App Icon & Apple Touch Icon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%231F4E79'/%3E%3Ccircle cx='256' cy='256' r='180' fill='none' stroke='%2338BDF8' stroke-width='28' stroke-dasharray='30 15'/%3E%3Cpath d='M256 140 V256 L340 300' fill='none' stroke='%2310B981' stroke-width='32' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='256' cy='256' r='20' fill='%23F8FAFC'/%3E%3C/svg%3E">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%231F4E79'/%3E%3Ccircle cx='256' cy='256' r='180' fill='none' stroke='%2338BDF8' stroke-width='28' stroke-dasharray='30 15'/%3E%3Cpath d='M256 140 V256 L340 300' fill='none' stroke='%2310B981' stroke-width='32' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='256' cy='256' r='20' fill='%23F8FAFC'/%3E%3C/svg%3E">
+
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --sat: env(safe-area-inset-top, 0px);
+      --sab: env(safe-area-inset-bottom, 0px);
+      --sal: env(safe-area-inset-left, 0px);
+      --sar: env(safe-area-inset-right, 0px);
+    }
+    .safe-pt { padding-top: max(1rem, var(--sat)); }
+    .safe-pb { padding-bottom: max(1.25rem, var(--sab)); }
+    .safe-h-bottom { height: max(4.5rem, calc(3.5rem + var(--sab))); }
+    
+    * {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    input, textarea, select {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    
+    @keyframes subtle-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.08); }
+    }
+    .animate-pulse-slow {
+      animation: subtle-pulse 2.2s infinite ease-in-out;
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+  </style>
+
+  <script>
+    (function injectManifest() {
+      const manifest = {
+        name: "ShiftLog Work Tracker",
+        short_name: "ShiftLog",
+        start_url: "./",
+        display: "standalone",
+        background_color: "#0F172A",
+        theme_color: "#1F4E79",
+        description: "Mobile-first offline shift tracker with pay period calculations",
+        icons: [
+          {
+            src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%231F4E79'/%3E%3Ccircle cx='256' cy='256' r='180' fill='none' stroke='%2338BDF8' stroke-width='28' stroke-dasharray='30 15'/%3E%3Cpath d='M256 140 V256 L340 300' fill='none' stroke='%2310B981' stroke-width='32' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='256' cy='256' r='20' fill='%23F8FAFC'/%3E%3C/svg%3E",
+            sizes: "512x512",
+            type: "image/svg+xml",
+            purpose: "any maskable"
+          }
+        ]
+      };
+      const stringManifest = JSON.stringify(manifest);
+      const blob = new Blob([stringManifest], {type: 'application/json'});
+      const manifestURL = URL.createObjectURL(blob);
+      document.querySelector('#manifest-placeholder').setAttribute('href', manifestURL);
+    })();
+  </script>
+</head>
+
+<body class="h-full flex flex-col bg-slate-950 text-slate-100 font-sans antialiased overflow-hidden">
+
+  <!-- Header -->
+  <header class="w-full bg-slate-900/95 border-b border-slate-800/80 backdrop-blur-md safe-pt px-4 pb-3 flex-none z-30 shadow-md">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-sky-950/50">
+          <i data-lucide="clock" class="w-4 h-4 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-bold tracking-tight text-white leading-none">ShiftLog</h1>
+          <p id="header-period-indicator" class="text-[11px] font-medium text-slate-400 leading-tight mt-0.5">Pay Period: Calculating...</p>
+        </div>
+      </div>
+      <div class="text-right">
+        <div id="header-current-time" class="text-xs font-mono font-semibold text-sky-400">00:00:00</div>
+        <div id="header-current-date" class="text-[10px] text-slate-400">Loading date...</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 overflow-y-auto px-4 py-4 relative z-10 w-full max-w-lg mx-auto pb-28">
+
+    <!-- VIEW 1: PUNCH INTERFACE -->
+    <section id="view-punch" class="space-y-4">
+      
+      <!-- Primary Status Card -->
+      <div id="status-card" class="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-b from-slate-900 to-slate-900/90 p-6 shadow-xl text-center transition-all duration-300">
+        <div class="absolute -right-8 -top-8 w-28 h-28 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none" id="status-glow"></div>
+        
+        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider mb-4 border transition-colors" id="status-badge">
+          <span class="w-2.5 h-2.5 rounded-full" id="status-dot"></span>
+          <span id="status-text">CLOCKED OUT</span>
+        </div>
+
+        <div class="my-2">
+          <p class="text-xs font-medium text-slate-400 mb-1" id="timer-label">CURRENT SHIFT DURATION</p>
+          <div id="active-stopwatch" class="text-5xl font-mono font-extrabold tracking-tight text-white drop-shadow-sm">
+            00:00:00
+          </div>
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-slate-800/80 flex items-center justify-around text-xs text-slate-300">
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Clocked In At</span>
+            <span id="punch-start-time" class="font-medium text-slate-200">--:--</span>
+          </div>
+          <div class="h-6 w-px bg-slate-800"></div>
+          <div>
+            <span class="text-slate-500 block text-[10px] uppercase font-bold tracking-wider">Earned (Approx)</span>
+            <span id="punch-est-hours" class="font-medium text-emerald-400">0.00 hrs</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="grid grid-cols-2 gap-3 pt-1">
+        <button id="btn-clock-in" onclick="handleClockInClick()" class="flex flex-col items-center justify-center p-5 rounded-2xl bg-emerald-600 active:bg-emerald-700 text-white font-bold text-base tracking-wide shadow-lg shadow-emerald-950/50 transition-all transform active:scale-95 disabled:opacity-35 disabled:cursor-not-allowed disabled:transform-none disabled:active:bg-emerald-600">
+          <i data-lucide="play-circle" class="w-7 h-7 mb-1.5 text-emerald-200"></i>
+          <span>CLOCK IN</span>
+          <span class="text-[10px] font-normal text-emerald-100/75 mt-0.5">Start Shift Punch</span>
+        </button>
+
+        <button id="btn-clock-out" onclick="openClockOutModal()" class="flex flex-col items-center justify-center p-5 rounded-2xl bg-rose-600 active:bg-rose-700 text-white font-bold text-base tracking-wide shadow-lg shadow-rose-950/50 transition-all transform active:scale-95 disabled:opacity-35 disabled:cursor-not-allowed disabled:transform-none disabled:active:bg-rose-600">
+          <i data-lucide="stop-circle" class="w-7 h-7 mb-1.5 text-rose-200"></i>
+          <span>CLOCK OUT</span>
+          <span class="text-[10px] font-normal text-rose-100/75 mt-0.5">Finish & Save</span>
+        </button>
+      </div>
+
+      <!-- Quick Summary -->
+      <div class="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <i data-lucide="calendar-range" class="w-3.5 h-3.5 text-sky-400"></i>
+            Current Pay Cycle Summary
+          </h3>
+          <span id="quick-current-cycle-name" class="text-[11px] font-semibold text-sky-300 bg-sky-950/80 border border-sky-800/50 px-2 py-0.5 rounded-md">--</span>
+        </div>
+        <div class="grid grid-cols-2 gap-3 text-center mt-3">
+          <div class="bg-slate-950/60 rounded-xl p-2.5 border border-slate-800/50">
+            <div class="text-[10px] font-semibold text-slate-400 uppercase">Period Total</div>
+            <div id="quick-period-total-hours" class="text-lg font-bold text-white mt-0.5">0.00 hrs</div>
+          </div>
+          <div class="bg-slate-950/60 rounded-xl p-2.5 border border-slate-800/50">
+            <div class="text-[10px] font-semibold text-slate-400 uppercase">Shifts Logged</div>
+            <div id="quick-period-shift-count" class="text-lg font-bold text-sky-400 mt-0.5">0 shifts</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual Add Shift -->
+      <div class="text-center pt-1">
+        <button onclick="openManualAddModal()" class="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-slate-700/80 bg-slate-800/40 hover:bg-slate-800/80 active:bg-slate-700/60 text-xs font-semibold text-slate-300 transition-colors">
+          <i data-lucide="plus-circle" class="w-4 h-4 text-sky-400"></i>
+          Forgot to punch? Add Missing Shift Manually
+        </button>
+      </div>
+
+    </section>
+
+    <!-- VIEW 2: PAY PERIODS & HISTORY -->
+    <section id="view-history" class="space-y-4 hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-white tracking-tight">Pay Period History</h2>
+          <p class="text-[11px] text-slate-400">14-day cycles anchored Mon, Sep 21, 2026</p>
+        </div>
+        <button onclick="openManualAddModal()" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white text-xs font-semibold flex items-center gap-1 shadow-sm">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          Add Shift
+        </button>
+      </div>
+
+      <div id="pay-periods-container" class="space-y-3.5"></div>
+    </section>
+
+    <!-- VIEW 3: SETTINGS & EXPORT -->
+    <section id="view-settings" class="space-y-4 hidden">
+      <div>
+        <h2 class="text-base font-bold text-white tracking-tight">Data & Settings</h2>
+        <p class="text-[11px] text-slate-400">Manage logs, backups, and bi-weekly cycle rules</p>
+      </div>
+
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 space-y-2">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+          <i data-lucide="info" class="w-3.5 h-3.5 text-sky-400"></i>
+          Pay Cycle Configuration
+        </h3>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          Cycle length: <span class="font-semibold text-white">14 days (Bi-weekly)</span>.<br>
+          Cycle base anchor: <span class="font-semibold text-sky-400">Monday, Sep 21, 2026</span>.<br>
+          Supports overnight shifts crossing midnight automatically.
+        </p>
+      </div>
+
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 space-y-3">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+          <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-400"></i>
+          Export Work Hours
+        </h3>
+        <p class="text-xs text-slate-400">
+          Download a spreadsheet-ready CSV with Pay Period, Date, Day, Time In, Time Out, Hours Worked, and Notes.
+        </p>
+        <button onclick="exportToCSV()" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-emerald-950/40 transition-colors">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+          Download ShiftLog_Export.csv
+        </button>
+      </div>
+
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 space-y-3">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+          <i data-lucide="database" class="w-3.5 h-3.5 text-sky-400"></i>
+          Backup & Restore (JSON)
+        </h3>
+        <p class="text-xs text-slate-400">
+          Save your complete database or restore an existing backup offline.
+        </p>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="exportJSONBackup()" class="py-2 px-3 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5">
+            <i data-lucide="save" class="w-3.5 h-3.5 text-sky-400"></i>
+            Backup JSON
+          </button>
+          <label class="py-2 px-3 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer text-center">
+            <i data-lucide="upload" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span>Restore JSON</span>
+            <input type="file" id="restore-json-input" accept=".json" class="hidden" onchange="importJSONBackup(event)">
+          </label>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-rose-900/40 bg-rose-950/10 p-4 space-y-2">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+          <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-400"></i>
+          Danger Zone
+        </h3>
+        <p class="text-xs text-slate-400">
+          Clear all recorded punches and reset current status.
+        </p>
+        <button onclick="confirmResetAllData()" class="w-full py-2 px-3 rounded-xl bg-rose-800/30 hover:bg-rose-800/50 border border-rose-700/50 text-rose-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          Clear All Shift Data
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Navigation -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-slate-900/95 border-t border-slate-800/80 backdrop-blur-md safe-pb z-30 safe-h-bottom flex items-center justify-around px-2 shadow-2xl">
+    <button onclick="switchTab('punch')" id="tab-btn-punch" class="flex-1 py-1 flex flex-col items-center justify-center text-sky-400 transition-colors">
+      <i data-lucide="clock" class="w-5 h-5 mb-0.5"></i>
+      <span class="text-[10px] font-bold tracking-wider">PUNCH</span>
+    </button>
+    <button onclick="switchTab('history')" id="tab-btn-history" class="flex-1 py-1 flex flex-col items-center justify-center text-slate-400 hover:text-slate-200 transition-colors">
+      <i data-lucide="calendar" class="w-5 h-5 mb-0.5"></i>
+      <span class="text-[10px] font-bold tracking-wider">PERIODS</span>
+    </button>
+    <button onclick="switchTab('settings')" id="tab-btn-settings" class="flex-1 py-1 flex flex-col items-center justify-center text-slate-400 hover:text-slate-200 transition-colors">
+      <i data-lucide="sliders" class="w-5 h-5 mb-0.5"></i>
+      <span class="text-[10px] font-bold tracking-wider">DATA</span>
+    </button>
+  </nav>
+
+  <!-- MODAL: CLOCK OUT -->
+  <div id="modal-clockout" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden opacity-0 transition-opacity duration-200">
+    <div class="w-full max-w-md bg-slate-900 border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-2xl p-5 space-y-4 safe-pb shadow-2xl transform transition-transform duration-200 translate-y-4">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+          Confirm Clock Out
+        </h3>
+        <button onclick="closeModal('modal-clockout')" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      
+      <div class="space-y-1.5">
+        <div class="flex justify-between text-xs text-slate-400">
+          <span>Clock In:</span>
+          <span id="modal-out-in-preview" class="font-medium text-slate-200">--</span>
+        </div>
+        <div class="flex justify-between text-xs text-slate-400">
+          <span>Clock Out:</span>
+          <span id="modal-out-out-preview" class="font-medium text-slate-200">--</span>
+        </div>
+        <div class="flex justify-between text-sm font-semibold text-white pt-1 border-t border-slate-800/80">
+          <span>Total Shift:</span>
+          <span id="modal-out-duration-preview" class="text-emerald-400 font-bold">-- hrs</span>
+        </div>
+      </div>
+
+      <div>
+        <label for="clockout-notes" class="block text-xs font-semibold text-slate-300 mb-1">Shift Notes (Optional)</label>
+        <textarea id="clockout-notes" rows="2" placeholder="e.g. Completed tasks, coverage, approval" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"></textarea>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5 pt-1">
+        <button onclick="closeModal('modal-clockout')" class="py-2.5 rounded-xl border border-slate-700 text-xs font-semibold text-slate-300 active:bg-slate-800">
+          Cancel
+        </button>
+        <button onclick="finalizeClockOut()" class="py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-xs font-bold text-white shadow-md shadow-emerald-950/50">
+          Save Shift
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: MANUAL ADD / EDIT SHIFT -->
+  <div id="modal-edit-shift" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden opacity-0 transition-opacity duration-200">
+    <div class="w-full max-w-md bg-slate-900 border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-2xl p-5 space-y-4 safe-pb shadow-2xl">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <h3 id="modal-shift-title" class="text-sm font-bold text-white flex items-center gap-2">
+          <i data-lucide="edit" class="w-4 h-4 text-sky-400"></i>
+          Edit Shift Entry
+        </h3>
+        <button onclick="closeModal('modal-edit-shift')" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <input type="hidden" id="edit-shift-id">
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label for="shift-form-date" class="block font-semibold text-slate-300 mb-1">Shift Start Date</label>
+          <input type="date" id="shift-form-date" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-sky-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label for="shift-form-start" class="block font-semibold text-slate-300 mb-1">Time In</label>
+            <input type="time" id="shift-form-start" onchange="calculateModalDuration()" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-sky-500">
+          </div>
+          <div>
+            <label for="shift-form-end" class="block font-semibold text-slate-300 mb-1">Time Out</label>
+            <input type="time" id="shift-form-end" onchange="calculateModalDuration()" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white focus:outline-none focus:border-sky-500">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950/70 border border-slate-800/80">
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="checkbox" id="shift-form-overnight" onchange="calculateModalDuration()" class="w-4 h-4 rounded border-slate-700 text-sky-600 focus:ring-0 focus:ring-offset-0 bg-slate-900">
+            <span class="text-slate-300 text-[11px]">Overnight (crosses midnight)</span>
+          </label>
+          <span id="shift-form-preview-hours" class="font-mono text-emerald-400 font-bold text-xs">0.00 hrs</span>
+        </div>
+
+        <div>
+          <label for="shift-form-notes" class="block font-semibold text-slate-300 mb-1">Notes</label>
+          <textarea id="shift-form-notes" rows="2" placeholder="Optional shift notes..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"></textarea>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5 pt-1">
+        <button onclick="closeModal('modal-edit-shift')" class="py-2.5 rounded-xl border border-slate-700 text-xs font-semibold text-slate-300 active:bg-slate-800">
+          Cancel
+        </button>
+        <button onclick="saveShiftModal()" class="py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-xs font-bold text-white shadow-md shadow-sky-950/50">
+          Save Entry
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl text-xs font-semibold text-white flex items-center gap-2 transform -translate-y-16 opacity-0 transition-all duration-300 pointer-events-none">
+    <i id="toast-icon" data-lucide="check" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toast-message">Action confirmed</span>
+  </div>
+
+  <script>
+    // Pay cycle anchor: Monday, September 21, 2026
+    const ANCHOR_DATE = new Date(2026, 8, 21, 0, 0, 0, 0);
+    const CYCLE_LENGTH_DAYS = 14;
+    const CYCLE_LENGTH_MS = CYCLE_LENGTH_DAYS * 24 * 60 * 60 * 1000;
+
+    const STORAGE_KEY_LOGS = 'shiftlog_punches_v1';
+    const STORAGE_KEY_STATE = 'shiftlog_active_state_v1';
+
+    let appState = {
+      isClockedIn: false,
+      clockedInAt: null,
+      pendingNotes: ""
+    };
+
+    let shiftLogs = [];
+    let liveTimerInterval = null;
+
+    // Boot & lifecycle listeners for iOS Safari / Home Screen PWA
+    window.addEventListener('DOMContentLoaded', initializeApplication);
+    window.addEventListener('pageshow', initializeApplication);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        initializeApplication();
+      }
+    });
+
+    function initializeApplication() {
+      loadStorage();
+      renderCurrentStatus();
+      renderPayPeriodSummaries();
+      updateHeaderClock();
+      lucide.createIcons();
+    }
+
+    function loadStorage() {
+      try {
+        const savedState = localStorage.getItem(STORAGE_KEY_STATE);
+        if (savedState) {
+          appState = JSON.parse(savedState);
+        }
+        const savedLogs = localStorage.getItem(STORAGE_KEY_LOGS);
+        if (savedLogs) {
+          shiftLogs = JSON.parse(savedLogs);
+        }
+      } catch (err) {
+        console.error('Error reading localStorage:', err);
+      }
+    }
+
+    function saveStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY_STATE, JSON.stringify(appState));
+        localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(shiftLogs));
+      } catch (err) {
+        console.error('Error writing localStorage:', err);
+      }
+    }
+
+    function getPayPeriodForDate(targetDate) {
+      const d = new Date(targetDate);
+      const targetMidnight = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      const anchorMidnight = ANCHOR_DATE.getTime();
+
+      const diffMs = targetMidnight - anchorMidnight;
+      let cycleIndex = Math.floor(diffMs / CYCLE_LENGTH_MS);
+
+      const periodStartMs = anchorMidnight + (cycleIndex * CYCLE_LENGTH_MS);
+      const periodEndMs = periodStartMs + CYCLE_LENGTH_MS - (24 * 60 * 60 * 1000);
+
+      const startDate = new Date(periodStartMs);
+      const endDate = new Date(periodEndMs);
+
+      const startStr = formatDateISO(startDate);
+      const endStr = formatDateISO(endDate);
+
+      return {
+        id: `${startStr}_${endStr}`,
+        cycleIndex,
+        startDate,
+        endDate,
+        label: formatPeriodLabel(startDate, endDate),
+        startStr,
+        endStr
+      };
+    }
+
+    function formatDateISO(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function formatPeriodLabel(start, end) {
+      const startMonth = start.toLocaleString('en-US', { month: 'short' });
+      const endMonth = end.toLocaleString('en-US', { month: 'short' });
+      const sameYear = start.getFullYear() === end.getFullYear();
+
+      if (startMonth === endMonth) {
+        return `${startMonth} ${start.getDate()} – ${end.getDate()}, ${end.getFullYear()}`;
+      } else if (sameYear) {
+        return `${startMonth} ${start.getDate()} – ${endMonth} ${end.getDate()}, ${end.getFullYear()}`;
+      } else {
+        return `${startMonth} ${start.getDate()}, ${start.getFullYear()} – ${endMonth} ${end.getDate()}, ${end.getFullYear()}`;
+      }
+    }
+
+    function formatTime12h(time24) {
+      if (!time24) return '--:--';
+      const [hours, minutes] = time24.split(':').map(Number);
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const h = hours % 12 || 12;
+      return `${h}:${String(minutes).padStart(2, '0')} ${ampm}`;
+    }
+
+    function updateLiveStopwatch() {
+      if (!appState.isClockedIn || !appState.clockedInAt) return;
+      const startTime = new Date(appState.clockedInAt).getTime();
+      const now = Date.now();
+      const elapsedMs = Math.max(0, now - startTime);
+
+      const totalSeconds = Math.floor(elapsedMs / 1000);
+      const hrs = Math.floor(totalSeconds / 3600);
+      const mins = Math.floor((totalSeconds % 3600) / 60);
+      const secs = totalSeconds % 60;
+
+      const stopwatchEl = document.getElementById('active-stopwatch');
+      const estHoursEl = document.getElementById('punch-est-hours');
+      if (stopwatchEl) {
+        stopwatchEl.innerText = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      }
+      if (estHoursEl) {
+        estHoursEl.innerText = `${(elapsedMs / (1000 * 60 * 60)).toFixed(2)} hrs`;
+      }
+    }
+
+    function updateHeaderClock() {
+      const now = new Date();
+      const timeEl = document.getElementById('header-current-time');
+      const dateEl = document.getElementById('header-current-date');
+      const periodEl = document.getElementById('header-period-indicator');
+      const quickCycleEl = document.getElementById('quick-current-cycle-name');
+
+      if (timeEl) timeEl.innerText = now.toLocaleTimeString('en-US', { hour12: false });
+      if (dateEl) dateEl.innerText = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+      const currentPeriod = getPayPeriodForDate(now);
+      if (periodEl) periodEl.innerText = `Cycle: ${currentPeriod.label}`;
+      if (quickCycleEl) quickCycleEl.innerText = currentPeriod.label;
+    }
+
+    setInterval(updateHeaderClock, 1000);
+
+    function renderCurrentStatus() {
+      if (liveTimerInterval) clearInterval(liveTimerInterval);
+
+      const isClocked = appState.isClockedIn && appState.clockedInAt;
+      const statusBadge = document.getElementById('status-badge');
+      const statusDot = document.getElementById('status-dot');
+      const statusText = document.getElementById('status-text');
+      const timerLabel = document.getElementById('timer-label');
+      const punchStartEl = document.getElementById('punch-start-time');
+      const estHoursEl = document.getElementById('punch-est-hours');
+      const statusGlow = document.getElementById('status-glow');
+
+      const btnClockIn = document.getElementById('btn-clock-in');
+      const btnClockOut = document.getElementById('btn-clock-out');
+
+      if (isClocked) {
+        statusBadge.className = 'inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider mb-4 border bg-emerald-500/15 border-emerald-500/40 text-emerald-300';
+        statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse-slow';
+        statusText.innerText = 'CLOCKED IN';
+        timerLabel.innerText = 'ELAPSED SHIFT TIME';
+        statusGlow.className = 'absolute -right-8 -top-8 w-36 h-36 rounded-full bg-emerald-500/20 blur-3xl pointer-events-none';
+
+        btnClockIn.disabled = true;
+        btnClockOut.disabled = false;
+
+        const startDate = new Date(appState.clockedInAt);
+        punchStartEl.innerText = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+        updateLiveStopwatch();
+        liveTimerInterval = setInterval(updateLiveStopwatch, 1000);
+
+      } else {
+        statusBadge.className = 'inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider mb-4 border bg-slate-800/80 border-slate-700 text-slate-400';
+        statusDot.className = 'w-2.5 h-2.5 rounded-full bg-slate-500';
+        statusText.innerText = 'CLOCKED OUT';
+        timerLabel.innerText = 'SHIFT COMPLETED / READY';
+        document.getElementById('active-stopwatch').innerText = '00:00:00';
+        statusGlow.className = 'absolute -right-8 -top-8 w-28 h-28 rounded-full bg-sky-500/5 blur-2xl pointer-events-none';
+
+        btnClockIn.disabled = false;
+        btnClockOut.disabled = true;
+
+        if (shiftLogs.length > 0) {
+          const lastShift = shiftLogs[0];
+          punchStartEl.innerText = `Last: ${lastShift.date}`;
+          estHoursEl.innerText = `${lastShift.hoursWorked.toFixed(2)} hrs`;
+        } else {
+          punchStartEl.innerText = '--:--';
+          estHoursEl.innerText = '0.00 hrs';
+        }
+      }
+
+      updateQuickCycleStats();
+    }
+
+    function handleClockInClick() {
+      if (appState.isClockedIn) return;
+      const now = new Date();
+      appState.isClockedIn = true;
+      appState.clockedInAt = now.toISOString();
+      appState.pendingNotes = "";
+
+      saveStorage();
+      renderCurrentStatus();
+      showToast("Clocked In Successfully!", "play-circle");
+    }
+
+    function openClockOutModal() {
+      if (!appState.isClockedIn || !appState.clockedInAt) return;
+
+      const startDate = new Date(appState.clockedInAt);
+      const endDate = new Date();
+
+      const inTimeStr = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      const outTimeStr = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+      const diffMs = Math.max(0, endDate.getTime() - startDate.getTime());
+      const hours = (diffMs / (1000 * 60 * 60)).toFixed(2);
+
+      document.getElementById('modal-out-in-preview').innerText = `${startDate.toLocaleDateString()} at ${inTimeStr}`;
+      document.getElementById('modal-out-out-preview').innerText = `${endDate.toLocaleDateString()} at ${outTimeStr}`;
+      document.getElementById('modal-out-duration-preview').innerText = `${hours} hrs (${formatDurationPretty(parseFloat(hours))})`;
+      document.getElementById('clockout-notes').value = "";
+
+      openModal('modal-clockout');
+    }
+
+    function finalizeClockOut() {
+      const startDate = new Date(appState.clockedInAt);
+      const endDate = new Date();
+      const notes = document.getElementById('clockout-notes').value.trim();
+
+      const timeIn24 = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`;
+      const timeOut24 = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
+
+      const isOvernight = (endDate.getTime() - startDate.getTime() >= 0) &&
+                          (endDate.getDate() !== startDate.getDate() || endDate.getMonth() !== startDate.getMonth());
+
+      const diffHours = calculateDurationDecimal(timeIn24, timeOut24, isOvernight);
+      const payPeriod = getPayPeriodForDate(startDate);
+
+      const newShift = {
+        id: 'shift_' + Date.now(),
+        date: formatDateISO(startDate),
+        inTime: timeIn24,
+        outTime: timeOut24,
+        isOvernight: isOvernight,
+        hoursWorked: diffHours,
+        notes: notes,
+        payPeriodId: payPeriod.id,
+        timestamp: Date.now()
+      };
+
+      shiftLogs.unshift(newShift);
+
+      appState.isClockedIn = false;
+      appState.clockedInAt = null;
+      appState.pendingNotes = "";
+
+      saveStorage();
+      closeModal('modal-clockout');
+      renderCurrentStatus();
+      renderPayPeriodSummaries();
+
+      showToast(`Clocked Out: ${diffHours.toFixed(2)} hrs logged`, "check");
+    }
+
+    function calculateDurationDecimal(timeIn24, timeOut24, forceOvernight = false) {
+      if (!timeIn24 || !timeOut24) return 0;
+      const [inH, inM] = timeIn24.split(':').map(Number);
+      const [outH, outM] = timeOut24.split(':').map(Number);
+
+      let inTotalMin = (inH * 60) + inM;
+      let outTotalMin = (outH * 60) + outM;
+
+      if (outTotalMin < inTotalMin || forceOvernight) {
+        outTotalMin += (24 * 60);
+      }
+
+      const minutes = Math.max(0, outTotalMin - inTotalMin);
+      const decimalHours = minutes / 60;
+      return Math.round(decimalHours * 100) / 100;
+    }
+
+    function formatDurationPretty(hoursFloat) {
+      const totalMinutes = Math.round(hoursFloat * 60);
+      const h = Math.floor(totalMinutes / 60);
+      const m = totalMinutes % 60;
+      return `${h}h ${m}m`;
+    }
+
+    function renderPayPeriodSummaries() {
+      const container = document.getElementById('pay-periods-container');
+      container.innerHTML = '';
+
+      const now = new Date();
+      const currentPeriod = getPayPeriodForDate(now);
+      const groupedMap = new Map();
+
+      groupedMap.set(currentPeriod.id, {
+        periodInfo: currentPeriod,
+        entries: [],
+        totalHours: 0
+      });
+
+      shiftLogs.forEach(entry => {
+        const shiftDate = new Date(entry.date + 'T00:00:00');
+        const period = getPayPeriodForDate(shiftDate);
+        
+        if (!groupedMap.has(period.id)) {
+          groupedMap.set(period.id, {
+            periodInfo: period,
+            entries: [],
+            totalHours: 0
+          });
+        }
+        const group = groupedMap.get(period.id);
+        group.entries.push(entry);
+        group.totalHours += entry.hoursWorked;
+      });
+
+      const sortedPeriods = Array.from(groupedMap.values()).sort((a, b) => {
+        return b.periodInfo.startDate.getTime() - a.periodInfo.startDate.getTime();
+      });
+
+      sortedPeriods.forEach((group, index) => {
+        const isCurrent = group.periodInfo.id === currentPeriod.id;
+        const card = document.createElement('div');
+        card.className = "rounded-2xl border border-slate-800 bg-slate-900/90 overflow-hidden shadow-lg transition-all";
+
+        const formattedTotal = group.totalHours.toFixed(2);
+        const shiftCount = group.entries.length;
+        const isExpanded = index === 0;
+
+        card.innerHTML = `
+          <div class="p-4 flex items-center justify-between cursor-pointer active:bg-slate-800/40 select-none" onclick="togglePeriodCard('${group.periodInfo.id}')">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-bold text-white tracking-tight">${group.periodInfo.label}</span>
+                ${isCurrent ? '<span class="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full">Active</span>' : ''}
+              </div>
+              <p class="text-[11px] text-slate-400">${shiftCount} ${shiftCount === 1 ? 'shift' : 'shifts'} recorded</p>
+            </div>
+            <div class="flex items-center space-x-3">
+              <div class="text-right">
+                <span class="text-sm font-mono font-bold text-sky-400 block">${formattedTotal} hrs</span>
+                <span class="text-[10px] text-slate-400">${formatDurationPretty(group.totalHours)}</span>
+              </div>
+              <i data-lucide="chevron-down" id="chevron-${group.periodInfo.id}" class="w-4 h-4 text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}"></i>
+            </div>
+          </div>
+
+          <div id="content-${group.periodInfo.id}" class="${isExpanded ? '' : 'hidden'} border-t border-slate-800/80 bg-slate-950/40">
+            ${group.entries.length === 0 ? `
+              <div class="p-4 text-center text-slate-500 text-xs italic">
+                No shifts recorded in this pay cycle yet.
+              </div>
+            ` : `
+              <div class="divide-y divide-slate-800/60">
+                ${group.entries.map(shift => renderShiftRow(shift)).join('')}
+              </div>
+            `}
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+
+      lucide.createIcons();
+    }
+
+    function renderShiftRow(shift) {
+      const shiftDateObj = new Date(shift.date + 'T00:00:00');
+      const dayName = shiftDateObj.toLocaleDateString('en-US', { weekday: 'short' });
+      const monthDay = shiftDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+      return `
+        <div class="p-3.5 flex items-start justify-between text-xs hover:bg-slate-800/20 transition-colors">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-white">${dayName}, ${monthDay}</span>
+              ${shift.isOvernight ? '<span class="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded font-medium border border-amber-500/30">Overnight</span>' : ''}
+            </div>
+            <div class="text-[11px] text-slate-400 font-mono">
+              ${formatTime12h(shift.inTime)} → ${formatTime12h(shift.outTime)}
+            </div>
+            ${shift.notes ? `<div class="text-[11px] text-slate-400/90 italic bg-slate-900/60 rounded px-2 py-1 mt-1 max-w-xs break-words">"${escapeHtml(shift.notes)}"</div>` : ''}
+          </div>
+
+          <div class="flex flex-col items-end space-y-2">
+            <span class="font-mono font-bold text-emerald-400 text-xs">${shift.hoursWorked.toFixed(2)} hrs</span>
+            <div class="flex items-center space-x-1.5">
+              <button onclick="openEditShiftModal('${shift.id}')" class="p-1 rounded bg-slate-800 text-slate-300 hover:text-white" title="Edit Shift">
+                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="deleteShift('${shift.id}')" class="p-1 rounded bg-rose-950/40 text-rose-300 hover:bg-rose-900/60" title="Delete Shift">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function togglePeriodCard(periodId) {
+      const content = document.getElementById(`content-${periodId}`);
+      const chevron = document.getElementById(`chevron-${periodId}`);
+      if (!content) return;
+
+      const isHidden = content.classList.contains('hidden');
+      if (isHidden) {
+        content.classList.remove('hidden');
+        chevron.classList.add('rotate-180');
+      } else {
+        content.classList.add('hidden');
+        chevron.classList.remove('rotate-180');
+      }
+    }
+
+    function updateQuickCycleStats() {
+      const now = new Date();
+      const currentPeriod = getPayPeriodForDate(now);
+      const currentEntries = shiftLogs.filter(s => s.payPeriodId === currentPeriod.id);
+      const totalHours = currentEntries.reduce((sum, s) => sum + s.hoursWorked, 0);
+
+      const hoursEl = document.getElementById('quick-period-total-hours');
+      const countEl = document.getElementById('quick-period-shift-count');
+      if (hoursEl) hoursEl.innerText = `${totalHours.toFixed(2)} hrs`;
+      if (countEl) countEl.innerText = `${currentEntries.length} ${currentEntries.length === 1 ? 'shift' : 'shifts'}`;
+    }
+
+    function openManualAddModal() {
+      document.getElementById('modal-shift-title').innerHTML = `<i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i> Add Missing Shift`;
+      document.getElementById('edit-shift-id').value = '';
+      
+      const todayISO = formatDateISO(new Date());
+      document.getElementById('shift-form-date').value = todayISO;
+      document.getElementById('shift-form-start').value = "09:00";
+      document.getElementById('shift-form-end').value = "17:00";
+      document.getElementById('shift-form-overnight').checked = false;
+      document.getElementById('shift-form-notes').value = '';
+
+      calculateModalDuration();
+      openModal('modal-edit-shift');
+    }
+
+    function openEditShiftModal(shiftId) {
+      const shift = shiftLogs.find(s => s.id === shiftId);
+      if (!shift) return;
+
+      document.getElementById('modal-shift-title').innerHTML = `<i data-lucide="pencil" class="w-4 h-4 text-sky-400"></i> Edit Shift`;
+      document.getElementById('edit-shift-id').value = shift.id;
+      document.getElementById('shift-form-date').value = shift.date;
+      document.getElementById('shift-form-start').value = shift.inTime;
+      document.getElementById('shift-form-end').value = shift.outTime;
+      document.getElementById('shift-form-overnight').checked = !!shift.isOvernight;
+      document.getElementById('shift-form-notes').value = shift.notes || '';
+
+      calculateModalDuration();
+      openModal('modal-edit-shift');
+    }
+
+    function calculateModalDuration() {
+      const inTime = document.getElementById('shift-form-start').value;
+      const outTime = document.getElementById('shift-form-end').value;
+      const isOvernight = document.getElementById('shift-form-overnight').checked;
+
+      if (inTime && outTime && outTime < inTime) {
+        document.getElementById('shift-form-overnight').checked = true;
+      }
+
+      const activeOvernight = document.getElementById('shift-form-overnight').checked;
+      const duration = calculateDurationDecimal(inTime, outTime, activeOvernight);
+      document.getElementById('shift-form-preview-hours').innerText = `${duration.toFixed(2)} hrs (${formatDurationPretty(duration)})`;
+    }
+
+    function saveShiftModal() {
+      const id = document.getElementById('edit-shift-id').value;
+      const date = document.getElementById('shift-form-date').value;
+      const inTime = document.getElementById('shift-form-start').value;
+      const outTime = document.getElementById('shift-form-end').value;
+      const isOvernight = document.getElementById('shift-form-overnight').checked;
+      const notes = document.getElementById('shift-form-notes').value.trim();
+
+      if (!date || !inTime || !outTime) {
+        showToast("Please provide Date, Time In & Time Out", "alert-triangle");
+        return;
+      }
+
+      const duration = calculateDurationDecimal(inTime, outTime, isOvernight);
+      const shiftDateObj = new Date(date + 'T00:00:00');
+      const payPeriod = getPayPeriodForDate(shiftDateObj);
+
+      if (id) {
+        const index = shiftLogs.findIndex(s => s.id === id);
+        if (index !== -1) {
+          shiftLogs[index] = {
+            ...shiftLogs[index],
+            date,
+            inTime,
+            outTime,
+            isOvernight,
+            hoursWorked: duration,
+            notes,
+            payPeriodId: payPeriod.id
+          };
+        }
+        showToast("Shift updated successfully", "check");
+      } else {
+        const newShift = {
+          id: 'shift_' + Date.now(),
+          date,
+          inTime,
+          outTime,
+          isOvernight,
+          hoursWorked: duration,
+          notes,
+          payPeriodId: payPeriod.id,
+          timestamp: Date.now()
+        };
+        shiftLogs.unshift(newShift);
+        showToast("New shift added", "check");
+      }
+
+      shiftLogs.sort((a, b) => {
+        if (b.date === a.date) {
+          return (b.inTime || '').localeCompare(a.inTime || '');
+        }
+        return b.date.localeCompare(a.date);
+      });
+
+      saveStorage();
+      closeModal('modal-edit-shift');
+      renderCurrentStatus();
+      renderPayPeriodSummaries();
+    }
+
+    function deleteShift(shiftId) {
+      shiftLogs = shiftLogs.filter(s => s.id !== shiftId);
+      saveStorage();
+      renderCurrentStatus();
+      renderPayPeriodSummaries();
+      showToast("Shift deleted", "trash-2");
+    }
+
+    function exportToCSV() {
+      if (shiftLogs.length === 0) {
+        showToast("No shift entries to export", "alert-triangle");
+        return;
+      }
+
+      const headers = ["Pay Period", "Date", "Day", "Time In", "Time Out", "Hours Worked", "Notes"];
+      const rows = shiftLogs.map(s => {
+        const d = new Date(s.date + 'T00:00:00');
+        const day = d.toLocaleDateString('en-US', { weekday: 'short' });
+        const period = getPayPeriodForDate(d);
+        const periodText = `"${period.label.replace(/"/g, '""')}"`;
+        const noteClean = `"${(s.notes || '').replace(/"/g, '""')}"`;
+
+        return [
+          periodText,
+          s.date,
+          day,
+          formatTime12h(s.inTime),
+          formatTime12h(s.outTime),
+          s.hoursWorked.toFixed(2),
+          noteClean
+        ].join(",");
+      });
+
+      const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows].join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `ShiftLog_Export_${formatDateISO(new Date())}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showToast("Exported ShiftLog_Export.csv", "download");
+    }
+
+    function exportJSONBackup() {
+      const backupData = {
+        version: "1.0",
+        exportDate: new Date().toISOString(),
+        activeState: appState,
+        shiftLogs: shiftLogs
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `ShiftLog_Backup_${formatDateISO(new Date())}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+
+      showToast("JSON Backup downloaded", "save");
+    }
+
+    function importJSONBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (Array.isArray(parsed.shiftLogs)) {
+            shiftLogs = parsed.shiftLogs;
+            if (parsed.activeState) {
+              appState = parsed.activeState;
+            }
+            saveStorage();
+            renderCurrentStatus();
+            renderPayPeriodSummaries();
+            showToast("Database restored successfully!", "check");
+          } else {
+            showToast("Invalid JSON backup structure", "alert-triangle");
+          }
+        } catch (err) {
+          showToast("Failed to parse backup JSON", "alert-triangle");
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function confirmResetAllData() {
+      if (confirm("Are you sure you want to delete ALL logged shifts and reset status?")) {
+        shiftLogs = [];
+        appState = { isClockedIn: false, clockedInAt: null, pendingNotes: "" };
+        saveStorage();
+        renderCurrentStatus();
+        renderPayPeriodSummaries();
+        showToast("All data cleared", "trash-2");
+      }
+    }
+
+    function switchTab(tabName) {
+      const views = ['punch', 'history', 'settings'];
+      views.forEach(v => {
+        const viewEl = document.getElementById(`view-${v}`);
+        const btnEl = document.getElementById(`tab-btn-${v}`);
+        if (v === tabName) {
+          viewEl.classList.remove('hidden');
+          btnEl.className = "flex-1 py-1 flex flex-col items-center justify-center text-sky-400 transition-colors";
+        } else {
+          viewEl.classList.add('hidden');
+          btnEl.className = "flex-1 py-1 flex flex-col items-center justify-center text-slate-400 hover:text-slate-200 transition-colors";
+        }
+      });
+
+      if (tabName === 'history') {
+        renderPayPeriodSummaries();
+      }
+      lucide.createIcons();
+    }
+
+    function openModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        const dialog = modal.firstElementChild;
+        if (dialog) dialog.classList.remove('translate-y-4');
+      }, 10);
+      lucide.createIcons();
+    }
+
+    function closeModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+      modal.classList.add('opacity-0');
+      const dialog = modal.firstElementChild;
+      if (dialog) dialog.classList.add('translate-y-4');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 200);
+    }
+
+    let toastTimeout = null;
+    function showToast(message, iconName = 'check') {
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toast-message');
+      const toastIcon = document.getElementById('toast-icon');
+
+      toastMessage.innerText = message;
+      toastIcon.setAttribute('data-lucide', iconName);
+      lucide.createIcons();
+
+      toast.classList.remove('-translate-y-16', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.add('-translate-y-16', 'opacity-0');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 2400);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+  </script>
+</body>
+</html>
+</html>
